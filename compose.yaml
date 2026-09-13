@@ -21,6 +21,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_healthy
     environment:
       COMMERCE_GATEWAY_SECRET: ${COMMERCE_GATEWAY_SECRET:-local-gateway-secret-change-before-sharing}
       COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
@@ -29,6 +31,8 @@ services:
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-local-wordpress-password}
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DEBUG: "1"
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
       WORDPRESS_CONFIG_EXTRA: |
         define( 'WP_ENVIRONMENT_TYPE', 'local' );
         define( 'DISALLOW_FILE_EDIT', true );
@@ -44,6 +48,17 @@ services:
     volumes:
       - wordpress_data:/var/www/html
       - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.27.8
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   wp-setup:
     image: wordpress:cli-2.12.0-php8.3
