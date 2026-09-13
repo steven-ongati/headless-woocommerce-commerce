@@ -25,9 +25,16 @@ export async function GET(
     const { reference } = await context.params;
     const order = await getAuthoritativeOrder(reference, cartId);
 
-    return NextResponse.json(publicOrder(order), {
-      headers: { "cache-control": "private, no-store" },
-    });
+    return NextResponse.json(
+      {
+        order: publicOrder(order),
+        paymentMode:
+          process.env.PAYMENT_MODE === "stripe-test"
+            ? "stripe-test"
+            : "simulator",
+      },
+      { headers: { "cache-control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof GatewayError) {
       return orderError(error.message, error.status);

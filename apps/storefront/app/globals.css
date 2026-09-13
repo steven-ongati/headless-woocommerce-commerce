@@ -790,7 +790,8 @@ h3 {
 
 .filter-field input,
 .filter-field select,
-.cart-line-actions select {
+.cart-line-actions select,
+.checkout-panel input {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 0;
@@ -964,6 +965,229 @@ h3 {
   text-align: center;
 }
 
+.checkout-panel {
+  background: white;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  margin-left: auto;
+  margin-top: 24px;
+  max-width: 540px;
+  padding: 32px;
+}
+
+.checkout-panel h2 {
+  font-size: 32px;
+  margin: 12px 0;
+}
+
+.checkout-panel > div > p:last-child,
+.checkout-help {
+  color: #59625c;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.checkout-panel label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.checkout-panel button {
+  border: 0;
+  cursor: pointer;
+  justify-content: center;
+}
+
+.checkout-panel button:disabled,
+.order-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.checkout-help {
+  margin-bottom: 0;
+}
+
+.order-page {
+  min-height: 75vh;
+  padding-bottom: 120px;
+  padding-top: 80px;
+}
+
+.order-page > header {
+  max-width: 760px;
+  padding-bottom: 46px;
+}
+
+.order-page h1 {
+  font-size: clamp(54px, 7vw, 92px);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin: 20px 0 24px;
+}
+
+.order-page > header > p:last-child {
+  color: #59625c;
+  line-height: 1.7;
+}
+
+.order-layout {
+  align-items: start;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+}
+
+.order-card,
+.timeline-panel {
+  background: white;
+  border: 1px solid var(--line);
+  padding: 36px;
+}
+
+.order-status-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.order-status {
+  background: var(--sand);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+
+.order-status-processing,
+.order-status-completed {
+  background: #dce9dc;
+  color: var(--forest);
+}
+
+.order-status-failed,
+.order-status-cancelled {
+  background: #f5ded5;
+  color: #8b351f;
+}
+
+.order-card > h2,
+.timeline-panel > h2 {
+  font-size: 34px;
+  overflow-wrap: anywhere;
+}
+
+.order-card > p:not(.eyebrow, .cart-message),
+.timeline-panel li p {
+  color: #59625c;
+  line-height: 1.7;
+}
+
+.order-facts {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  margin: 30px 0;
+  padding: 12px 0;
+}
+
+.order-facts div,
+.order-items li {
+  align-items: baseline;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.order-facts dt {
+  color: #59625c;
+  font-size: 12px;
+}
+
+.order-facts dd {
+  font-weight: 800;
+  margin: 0;
+  text-align: right;
+}
+
+.order-items {
+  list-style: none;
+  margin: 0 0 34px;
+  padding: 0;
+}
+
+.order-items li + li {
+  border-top: 1px solid var(--line);
+}
+
+.order-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.order-actions .button {
+  border: 0;
+  cursor: pointer;
+}
+
+.timeline-panel ol {
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+}
+
+.timeline-panel li {
+  border-left: 2px solid var(--moss);
+  padding: 0 0 30px 24px;
+  position: relative;
+}
+
+.timeline-panel li::before {
+  background: var(--clay);
+  border: 4px solid white;
+  border-radius: 50%;
+  content: "";
+  height: 14px;
+  left: -8px;
+  position: absolute;
+  top: 0;
+  width: 14px;
+}
+
+.timeline-panel time,
+.timeline-panel strong {
+  display: block;
+}
+
+.timeline-panel time {
+  color: #6c736e;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  margin-bottom: 7px;
+}
+
+.timeline-panel strong {
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.timeline-panel li p {
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.order-unavailable {
+  border: 1px dashed var(--moss);
+  padding: 42px;
+}
+
 @media (max-width: 900px) {
   .catalog-filters {
     grid-template-columns: 1fr 1fr;
@@ -991,5 +1215,26 @@ h3 {
 
   .projection-status {
     gap: 8px;
+  }
+
+  .order-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .order-card,
+  .timeline-panel,
+  .checkout-panel {
+    padding: 28px;
+  }
+
+  .order-facts div,
+  .order-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .order-facts dd {
+    text-align: left;
   }
 }

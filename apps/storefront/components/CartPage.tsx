@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import type { CartView } from "../lib/cart-contract";
 import { formatPrice } from "../lib/money";
+import { CheckoutPanel } from "./CheckoutPanel";
 
 export function CartPage() {
   const [cart, setCart] = useState<CartView | null>(null);
@@ -145,10 +146,11 @@ export function CartPage() {
           <strong>{formatPrice(cart.subtotal, cart.currency)}</strong>
         </p>
         <p>
-          Checkout and stock reservation arrive in Phase 3. This subtotal is
-          read from WooCommerce and is not an order confirmation.
+          This subtotal is a cart projection. WooCommerce recalculates it while
+          creating the pending order.
         </p>
       </aside>
+      {cart.lines.every((line) => line.available) ? <CheckoutPanel /> : null}
     </div>
   );
 }

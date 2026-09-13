@@ -25,9 +25,16 @@ export async function POST(
     const { reference } = await context.params;
     const order = await cancelAuthoritativeOrder(reference, cartId);
 
-    return NextResponse.json(publicOrder(order), {
-      headers: { "cache-control": "private, no-store" },
-    });
+    return NextResponse.json(
+      {
+        order: publicOrder(order),
+        paymentMode:
+          process.env.PAYMENT_MODE === "stripe-test"
+            ? "stripe-test"
+            : "simulator",
+      },
+      { headers: { "cache-control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof GatewayError) {
       return cancelError(error.message, error.status);
