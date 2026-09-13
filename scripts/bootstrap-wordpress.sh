@@ -19,6 +19,7 @@ fi
 
 wp option update permalink_structure "/%postname%/"
 wp option update blogdescription "Synthetic field goods for considered journeys"
+wp option update woocommerce_hold_stock_minutes "15"
 
 wp plugin install woocommerce --version=10.7.0 --activate
 wp plugin install wp-graphql --version=2.22.2 --activate

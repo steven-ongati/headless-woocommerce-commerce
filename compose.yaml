@@ -22,6 +22,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      COMMERCE_GATEWAY_SECRET: ${COMMERCE_GATEWAY_SECRET:-local-gateway-secret-change-before-sharing}
       COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: wordpress
@@ -31,6 +32,7 @@ services:
       WORDPRESS_CONFIG_EXTRA: |
         define( 'WP_ENVIRONMENT_TYPE', 'local' );
         define( 'DISALLOW_FILE_EDIT', true );
+        define( 'COMMERCE_GATEWAY_SECRET', getenv( 'COMMERCE_GATEWAY_SECRET' ) );
         define( 'COMMERCE_PREVIEW_SECRET', getenv( 'COMMERCE_PREVIEW_SECRET' ) );
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost/wp-login.php >/dev/null || exit 1"]
@@ -102,6 +104,7 @@ services:
       meilisearch:
         condition: service_healthy
     environment:
+      COMMERCE_GATEWAY_SECRET: ${COMMERCE_GATEWAY_SECRET:-local-gateway-secret-change-before-sharing}
       COMMERCE_OPERATIONS_SECRET: ${COMMERCE_OPERATIONS_SECRET:-local-operations-secret-change-before-sharing}
       COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
       MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-local-meilisearch-key-change-before-sharing}
