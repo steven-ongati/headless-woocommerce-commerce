@@ -1,6 +1,6 @@
 import {
+  createHash,
   createHmac,
-  randomUUID,
   timingSafeEqual,
 } from "node:crypto";
 
@@ -47,10 +47,20 @@ export async function preparePayment(
   idempotencyKey: string,
 ): Promise<{ order: InternalOrder; mode: PaymentMode }> {
   const mode = paymentMode();
+  if (order.paymentIntentId) {
+    return { order, mode };
+  }
+
   const intent =
     mode === "stripe-test"
       ? await createStripeIntent(order, idempotencyKey)
-      : simulatedIntent(order);
+      : simulatedIntent(
+          order,
+          `pi_sim_${createHash("sha256")
+            .update(idempotencyKey)
+            .digest("hex")
+            .slice(0, 32)}`,
+        );
   const attached = await attachPaymentIntent(
     order.reference,
     cartId,
@@ -204,7 +214,7 @@ function paymentMode(): PaymentMode {
 
 function simulatedIntent(
   order: InternalOrder,
-  existingId = `pi_sim_${randomUUID().replaceAll("-", "")}`,
+  existingId: string,
 ): PaymentIntent {
   return {
     id: existingId,
