@@ -80,11 +80,43 @@ export async function confirmPayment(
     );
   }
 
-  const delivered = await deliverPaymentEvent(
-    paymentEventFromIntent(intent, `sync_${intent.id}`),
-  );
+  const delivered =
+    mode === "simulator"
+      ? await deliverSimulatedWebhook(intent)
+      : await deliverPaymentEvent(
+          paymentEventFromIntent(intent, `sync_${intent.id}`),
+        );
 
   return { order: delivered.order, mode };
+}
+
+async function deliverSimulatedWebhook(
+  intent: PaymentIntent,
+): Promise<{ duplicate: boolean; order: InternalOrder }> {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new PaymentError(
+      "The local payment callback is not configured.",
+      503,
+    );
+  }
+
+  const payload = JSON.stringify({
+    id: `evt_sim_${intent.id}`,
+    type: "payment_intent.succeeded",
+    data: { object: intent },
+  });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const digest = createHmac("sha256", secret)
+    .update(`${timestamp}.${payload}`)
+    .digest("hex");
+  const event = parseSignedStripeEvent(
+    payload,
+    `t=${timestamp},v1=${digest}`,
+    timestamp,
+  );
+
+  return deliverPaymentEvent(paymentEventFromStripeEvent(event));
 }
 
 export async function processStripeWebhook(
@@ -105,7 +137,7 @@ export function parseSignedStripeEvent(
     throw new PaymentError("Stripe webhook verification is not configured.", 503);
   }
 
-  const parts = signature.split(",");
+  const parts = signature.split(",").map((part) => part.trim());
   const timestamp = parts
     .find((part) => part.startsWith("t="))
     ?.slice(2);

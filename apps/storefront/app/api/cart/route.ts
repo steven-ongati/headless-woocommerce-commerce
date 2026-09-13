@@ -10,8 +10,7 @@ import {
   removeCartItem,
   setCartItemQuantity,
 } from "../../../lib/cart";
-
-const CART_COOKIE = "northstar_cart";
+import { CART_COOKIE, isValidCartId } from "../../../lib/cart-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -105,13 +104,4 @@ async function readCartBody(
     sku: input.sku,
     quantity: typeof input.quantity === "number" ? input.quantity : 1,
   };
-}
-
-function isValidCartId(value?: string): value is string {
-  return Boolean(
-    value &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        value,
-      ),
-  );
 }
