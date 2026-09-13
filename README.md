@@ -2,7 +2,7 @@
 
 A reference implementation in which WordPress and WooCommerce remain authoritative while a Next.js storefront delivers the customer experience.
 
-Phases 1 and 2 include:
+Phases 1 through 3 include:
 
 - a pinned, containerized WordPress, WooCommerce, WPGraphQL, and MySQL stack;
 - an idempotent WP-CLI seed command for four synthetic products and two field notes;
@@ -12,7 +12,11 @@ Phases 1 and 2 include:
 - a rebuildable Meilisearch catalog projection with URL-addressable facets and authoritative fallback;
 - Redis-backed, seven-day cart sessions with HttpOnly identifiers and WooCommerce price and availability revalidation;
 - fingerprint-based projection drift detection, an operations-secret-protected rebuild path, and dependency readiness reporting; and
-- static checks plus a running-stack contract check covering the projection and cart.
+- durable idempotent checkout commands that create pending WooCommerce orders and reserve stock;
+- a deterministic signed payment simulator plus an optional Stripe test-mode adapter;
+- replay-safe payment callbacks, WooCommerce-native stock reduction and release, and an order support timeline;
+- customer and operator WooCommerce email captured by local Mailpit; and
+- static checks plus running-stack contracts covering projections, carts, checkout retries, payment outcomes, email, and final-unit contention.
 
 All catalog, customer, order, and editorial data is synthetic. This project does not claim production traffic, merchant adoption, tax correctness, PCI certification, accessibility certification, or warehouse integration.
 
@@ -27,14 +31,17 @@ Next.js storefront :3000
   |                              +-- commerce-reference plugin
   |                                  +-- field-note content type
   |                                  +-- paged catalog projection
-  |                                  +-- deterministic seed command
+  |                                  +-- checkout + payment event records
+  |                                  +-- WooCommerce orders + stock holds
   |-- validated search --------> Meilisearch
-  +-- expiring cart -----------> Redis
+  |-- expiring cart -----------> Redis
+  +-- local order email -------> Mailpit :8025
 
 operator rebuild: WooCommerce projection --> Meilisearch + Redis fingerprint
+payment callback: signed event --> Next.js --> durable WordPress ingestion
 ```
 
-WordPress owns editorial publication and revisions. WooCommerce owns products, prices, stock, customers, and orders. Meilisearch is a disposable read projection; Redis stores expiring cart intent and projection metadata, not authoritative product state.
+WordPress owns editorial publication and revisions. WooCommerce owns products, prices, stock, customers, orders, and payment-related order state. Meilisearch is a disposable read projection; Redis stores expiring cart intent and projection metadata, not authoritative product or order state.
 
 See [architecture](docs/architecture.md), [security](docs/security.md), [operations](docs/operations.md), and [testing](docs/testing.md) for the evidence boundary.
 
@@ -51,7 +58,7 @@ cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-The local storefront is exposed on port `3000`, WordPress on port `8080`, and Meilisearch on loopback port `7700`. The first startup installs WordPress, activates the pinned plugins, and seeds fixtures before the storefront starts.
+The local storefront is exposed on port `3000`, WordPress on port `8080`, Meilisearch on loopback port `7700`, and Mailpit on loopback port `8025`. The first startup installs WordPress, activates the pinned plugins, and seeds fixtures before the storefront starts.
 
 Build the initial search projection after the stack is healthy:
 
@@ -84,10 +91,17 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+npm run verify:checkout
 npm run verify:stack
 ```
 
-`verify:stack` expects the Compose services to be running. It rebuilds and validates the catalog projection, readiness state, authoritative GraphQL contract, and a Redis-backed cart write with current WooCommerce price and availability.
+`verify:stack` expects the Compose services to be running. It rebuilds and validates the catalog projection, readiness state, authoritative GraphQL contract, Redis cart, authoritative checkout repricing, idempotent retries, successful and failed payment effects, Mailpit delivery, and concurrent attempts to reserve the final unit.
+
+## Checkout flow
+
+Add a synthetic product to the cart, open `/cart`, and enter an address ending in `.test`. Checkout creates a pending WooCommerce order, reserves stock for 15 minutes, and redirects to an order page with test payment and cancellation actions plus a durable support timeline.
+
+`PAYMENT_MODE=simulator` is the default and keeps the entire flow local. `PAYMENT_MODE=stripe-test` requires an `sk_test_` key and uses Stripe's test payment method; live keys are rejected. Neither mode stores a card number or CVC. Mailpit captures the resulting local WooCommerce email at `http://localhost:8025`.
 
 ## Preview flow
 
@@ -101,4 +115,4 @@ The endpoint validates the secret with a timing-safe comparison, validates the s
 
 ## Current boundary
 
-Phase 2 intentionally stops before checkout. It excludes orders, payments, tax validation, promotions, shipping rates, customer accounts, inventory reservations, reconciliation, cloud deployment, and production observability. Cart totals are revalidated display values, not order confirmations; Phase 3 must re-read price and stock again while creating the pending order and stock hold.
+Phase 3 is a local, synthetic commerce workflow rather than a production checkout. It excludes validated tax and shipping integrations, promotions, customer accounts, refunds, automated hold expiry, asynchronous reconciliation workers, cloud deployment, and production observability. Stripe support is test mode only, and Mailpit proves local message generation rather than deliverability through a production email provider.
