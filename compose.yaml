@@ -110,8 +110,12 @@ services:
       MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-local-meilisearch-key-change-before-sharing}
       MEILISEARCH_URL: http://meilisearch:7700
       NODE_ENV: production
+      PAYMENT_MODE: ${PAYMENT_MODE:-simulator}
       REDIS_URL: redis://redis:6379
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-local-webhook-secret-change-before-sharing}
       WORDPRESS_GRAPHQL_URL: http://wordpress/graphql
+      WORDPRESS_REST_URL: http://wordpress/wp-json/commerce-reference/v1
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
       interval: 10s

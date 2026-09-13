@@ -126,6 +126,32 @@ export async function removeCartItem(
   return getCartView(cartId);
 }
 
+export async function getCheckoutLines(
+  cartId: string,
+): Promise<Array<{ sku: string; quantity: number }>> {
+  const cart = await readCart(cartId);
+  if (cart.lines.length === 0) {
+    throw new CartError("Add at least one product before checkout.", 400);
+  }
+
+  const view = revalidateCart(cart, await getCatalog());
+  if (view.lines.some((line) => !line.available)) {
+    throw new CartError(
+      "Remove unavailable products before checkout.",
+      409,
+    );
+  }
+
+  return view.lines.map((line) => ({
+    sku: line.sku,
+    quantity: line.quantity,
+  }));
+}
+
+export async function clearCart(cartId: string): Promise<void> {
+  await withRedis((client) => client.del(cartKey(cartId)));
+}
+
 async function readCart(cartId: string): Promise<StoredCart> {
   const stored = await withRedis((client) =>
     client.get(cartKey(cartId)),
