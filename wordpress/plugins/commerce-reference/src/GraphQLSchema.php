@@ -26,6 +26,7 @@ final class GraphQLSchema
                     'stockStatus' => ['type' => ['non_null' => 'String']],
                     'categories' => ['type' => ['list_of' => 'String']],
                     'featured' => ['type' => ['non_null' => 'Boolean']],
+                    'modified' => ['type' => ['non_null' => 'String']],
                 ],
             ]
         );
@@ -53,19 +54,25 @@ final class GraphQLSchema
                 'type' => ['list_of' => 'CommerceProduct'],
                 'description' => __('Published WooCommerce products for the headless storefront.', 'commerce-reference'),
                 'args' => [
-                    'limit' => [
-                        'type' => 'Int',
-                        'defaultValue' => 12,
+                        'limit' => [
+                            'type' => 'Int',
+                            'defaultValue' => 12,
+                        ],
+                        'offset' => [
+                            'type' => 'Int',
+                            'defaultValue' => 0,
+                        ],
                     ],
-                ],
-                'resolve' => static function ($root, array $args): array {
-                    $limit = max(1, min(24, (int) ($args['limit'] ?? 12)));
+                    'resolve' => static function ($root, array $args): array {
+                        $limit = max(1, min(50, (int) ($args['limit'] ?? 12)));
+                        $offset = max(0, (int) ($args['offset'] ?? 0));
 
-                    return array_map(
-                        [self::class, 'projectProduct'],
-                        wc_get_products([
-                            'limit' => $limit,
-                            'status' => 'publish',
+                        return array_map(
+                            [self::class, 'projectProduct'],
+                            wc_get_products([
+                                'limit' => $limit,
+                                'offset' => $offset,
+                                'status' => 'publish',
                             'orderby' => 'menu_order',
                             'order' => 'ASC',
                         ])
@@ -124,6 +131,7 @@ final class GraphQLSchema
             'stockStatus' => $product->get_stock_status(),
             'categories' => is_wp_error($categoryNames) ? [] : $categoryNames,
             'featured' => $product->is_featured(),
+            'modified' => $product->get_date_modified()?->date(DATE_ATOM) ?? '',
         ];
     }
 

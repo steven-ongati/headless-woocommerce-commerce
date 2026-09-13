@@ -1,4 +1,6 @@
-import { CommerceProduct, formatPrice } from "../lib/commerce";
+import { CommerceProduct } from "../lib/commerce";
+import { formatPrice } from "../lib/money";
+import { AddToCartButton } from "./AddToCartButton";
 
 type ProductCardProps = {
   product: CommerceProduct;
@@ -29,6 +31,10 @@ export function ProductCard({ product, index }: ProductCardProps) {
             {availability}
           </span>
         </div>
+        <AddToCartButton
+          available={product.stockStatus === "instock"}
+          sku={product.sku}
+        />
       </div>
     </article>
   );

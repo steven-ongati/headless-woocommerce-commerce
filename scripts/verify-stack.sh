@@ -2,12 +2,47 @@
 
 set -eu
 
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
+operations_secret="${COMMERCE_OPERATIONS_SECRET:-local-operations-secret-change-before-sharing}"
+cookie_jar="$(mktemp)"
+trap 'rm -f "${cookie_jar}"' EXIT
+
 storefront_health="$(curl -fsS http://localhost:3000/api/health)"
+unauthorized_projection_status="$(
+  curl -sS \
+    -o /dev/null \
+    -w '%{http_code}' \
+    http://localhost:3000/api/operations/projection
+)"
 graphql_response="$(
   curl -fsS \
     -H 'content-type: application/json' \
-    --data '{"query":"query StackContract { commerceCatalog(limit: 12) { sku name price currency stockStatus } }"}' \
+    --data '{"query":"query StackContract { commerceCatalog(limit: 12) { sku name price currency stockStatus modified } }"}' \
     http://localhost:8080/graphql
+)"
+projection_rebuild="$(
+  curl -fsS \
+    -X POST \
+    -H "x-operations-secret: ${operations_secret}" \
+    http://localhost:3000/api/operations/projection
+)"
+projection_status="$(
+  curl -fsS \
+    -H "x-operations-secret: ${operations_secret}" \
+    http://localhost:3000/api/operations/projection
+)"
+readiness="$(curl -fsS http://localhost:3000/api/readiness)"
+cart_response="$(
+  curl -fsS \
+    -c "${cookie_jar}" \
+    -H 'content-type: application/json' \
+    --data '{"sku":"NS-TRAIL-001"}' \
+    http://localhost:3000/api/cart
 )"
 
 echo "${storefront_health}" | jq -e '
@@ -15,6 +50,8 @@ echo "${storefront_health}" | jq -e '
   .status == "ok" and
   (.timestamp | type == "string")
 ' >/dev/null
+
+test "${unauthorized_projection_status}" = "401"
 
 echo "${graphql_response}" | jq -e '
   (.errors // []) | length == 0
@@ -32,5 +69,40 @@ echo "${graphql_response}" | jq -e '
     "NS-TRAIL-001"
   ]
 ' >/dev/null
+
+echo "${graphql_response}" | jq -e '
+  all(.data.commerceCatalog[]; (.modified | type == "string") and (.modified | length > 0))
+' >/dev/null
+
+echo "${projection_rebuild}" | jq -e '
+  .status == "fresh" and
+  .authoritativeCount == 4 and
+  .projectedCount == 4
+' >/dev/null
+
+echo "${projection_status}" | jq -e '
+  .status == "fresh" and
+  .sourceFingerprint == .projectedFingerprint
+' >/dev/null
+
+echo "${readiness}" | jq -e '
+  .status == "ready" and
+  .dependencies.wordpress == "ready" and
+  .dependencies.redis == "ready" and
+  .dependencies.projection == "fresh"
+' >/dev/null
+
+echo "${cart_response}" | jq -e '
+  .itemCount == 1 and
+  .lines[0].sku == "NS-TRAIL-001" and
+  .lines[0].available == true and
+  .lines[0].currentPrice == .lines[0].capturedPrice
+' >/dev/null
+
+curl -fsS \
+  -b "${cookie_jar}" \
+  -X DELETE \
+  'http://localhost:3000/api/cart?sku=NS-TRAIL-001' \
+  >/dev/null
 
 printf '%s\n' "Stack contract verified."

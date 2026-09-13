@@ -1,8 +1,16 @@
 import { CommerceProduct } from "../lib/commerce";
+import type { ProjectionStatus } from "../lib/projection";
 import { ProductCard } from "./ProductCard";
 
 type CatalogProps =
-  | { status: "ready"; products: CommerceProduct[] }
+  | {
+      status: "ready";
+      products: CommerceProduct[];
+      categories: string[];
+      source: "projection" | "authority";
+      projectionStatus: ProjectionStatus["status"];
+      indexedAt: string | null;
+    }
   | { status: "unavailable" };
 
 export function Catalog(props: CatalogProps) {
@@ -20,10 +28,31 @@ export function Catalog(props: CatalogProps) {
   }
 
   return (
-    <div className="product-grid">
-      {props.products.map((product, index) => (
-        <ProductCard key={product.sku} product={product} index={index} />
-      ))}
-    </div>
+    <>
+      <div className="projection-status" role="status">
+        <span>
+          {props.source === "projection"
+            ? "Search projection"
+            : "Authoritative fallback"}
+        </span>
+        <p>
+          {props.projectionStatus === "fresh"
+            ? `Projection current${props.indexedAt ? ` · rebuilt ${new Date(props.indexedAt).toLocaleString("en-US")}` : ""}.`
+            : "Projection is stale or unavailable; results are read directly from WooCommerce."}
+        </p>
+      </div>
+      {props.products.length > 0 ? (
+        <div className="product-grid">
+          {props.products.map((product, index) => (
+            <ProductCard key={product.sku} product={product} index={index} />
+          ))}
+        </div>
+      ) : (
+        <div className="catalog-empty" role="status">
+          <h3>No products match these filters.</h3>
+          <p>Reset the catalog filters or try a broader search.</p>
+        </div>
+      )}
+    </>
   );
 }

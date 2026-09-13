@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CartIndicator } from "./CartIndicator";
+
 export function SiteHeader() {
   return (
     <header className="site-header">
@@ -19,6 +21,7 @@ export function SiteHeader() {
             Field notes
           </Link>
           <Link href="/#authority">Our approach</Link>
+          <CartIndicator />
         </nav>
       </div>
     </header>

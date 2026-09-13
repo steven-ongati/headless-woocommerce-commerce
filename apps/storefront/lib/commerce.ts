@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+export { formatPrice } from "./money";
+
 export type CommerceProduct = {
   databaseId: number;
   sku: string;
@@ -13,6 +15,7 @@ export type CommerceProduct = {
   stockStatus: "instock" | "outofstock" | "onbackorder";
   categories: string[];
   featured: boolean;
+  modified: string;
 };
 
 export type CommerceStory = {
@@ -38,26 +41,39 @@ export class CommerceDataError extends Error {
 }
 
 export async function getCatalog(): Promise<CommerceProduct[]> {
-  const data = await queryCommerce<{ commerceCatalog: CommerceProduct[] }>(
-    `query StorefrontCatalog {
-      commerceCatalog(limit: 12) {
-        databaseId
-        sku
-        name
-        slug
-        description
-        shortDescription
-        price
-        regularPrice
-        currency
-        stockStatus
-        categories
-        featured
-      }
-    }`,
-  );
+  const products: CommerceProduct[] = [];
+  const pageSize = 50;
 
-  return data.commerceCatalog;
+  for (let offset = 0; offset < 1_000; offset += pageSize) {
+    const data = await queryCommerce<{
+      commerceCatalog: CommerceProduct[];
+    }>(
+      `query StorefrontCatalog($limit: Int!, $offset: Int!) {
+        commerceCatalog(limit: $limit, offset: $offset) {
+          databaseId
+          sku
+          name
+          slug
+          description
+          shortDescription
+          price
+          regularPrice
+          currency
+          stockStatus
+          categories
+          featured
+          modified
+        }
+      }`,
+      { limit: pageSize, offset },
+    );
+    products.push(...data.commerceCatalog);
+    if (data.commerceCatalog.length < pageSize) {
+      return products;
+    }
+  }
+
+  throw new CommerceDataError("The catalog exceeded the bounded page limit.");
 }
 
 export async function getStory(
@@ -84,22 +100,9 @@ export async function getStory(
   return data.commerceStoryPreview;
 }
 
-export function formatPrice(price: string, currency: string): string {
-  const value = Number(price);
-
-  if (!Number.isFinite(value)) {
-    throw new CommerceDataError(`Invalid price projection: ${price}`);
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(value);
-}
-
 async function queryCommerce<T>(
   query: string,
-  variables: Record<string, string> = {},
+  variables: Record<string, string | number> = {},
 ): Promise<T> {
   const endpoint = process.env.WORDPRESS_GRAPHQL_URL;
   if (!endpoint) {

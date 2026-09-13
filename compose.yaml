@@ -61,6 +61,35 @@ services:
       - ./scripts:/scripts:ro
       - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
 
+  redis:
+    image: redis:8.2.1-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15.2
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-local-meilisearch-key-change-before-sharing}
+      MEILI_NO_ANALYTICS: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:7700/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "127.0.0.1:7700:7700"
+    restart: unless-stopped
+    volumes:
+      - meilisearch_data:/meili_data
+
   storefront:
     build:
       context: .
@@ -68,9 +97,17 @@ services:
     depends_on:
       wp-setup:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
     environment:
+      COMMERCE_OPERATIONS_SECRET: ${COMMERCE_OPERATIONS_SECRET:-local-operations-secret-change-before-sharing}
       COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
+      MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-local-meilisearch-key-change-before-sharing}
+      MEILISEARCH_URL: http://meilisearch:7700
       NODE_ENV: production
+      REDIS_URL: redis://redis:6379
       WORDPRESS_GRAPHQL_URL: http://wordpress/graphql
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
@@ -81,5 +118,7 @@ services:
       - "3000:3000"
 
 volumes:
+  meilisearch_data:
   mysql_data:
+  redis_data:
   wordpress_data:

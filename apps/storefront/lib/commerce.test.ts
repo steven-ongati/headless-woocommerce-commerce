@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CommerceDataError, formatPrice } from "./commerce";
+import { formatPrice, MoneyFormatError } from "./money";
 
 describe("formatPrice", () => {
   it("formats an authoritative decimal projection", () => {
@@ -8,6 +8,6 @@ describe("formatPrice", () => {
   });
 
   it("rejects a malformed price projection", () => {
-    expect(() => formatPrice("not-a-price", "USD")).toThrow(CommerceDataError);
+    expect(() => formatPrice("not-a-price", "USD")).toThrow(MoneyFormatError);
   });
 });

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Commerce Reference
  * Description: Domain content, storefront GraphQL fields, preview isolation, and deterministic fixtures.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires at least: 6.8
  * Requires PHP: 8.3
  * Author: Steven Ongati

@@ -1,14 +1,25 @@
 import Link from "next/link";
 
 import { Catalog } from "../components/Catalog";
-import { getCatalog } from "../lib/commerce";
+import { CatalogFilters } from "../components/CatalogFilters";
+import {
+  CatalogSearchOptions,
+  searchCatalog,
+} from "../lib/projection";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const catalog = await getCatalog()
-    .then((products) => ({ status: "ready" as const, products }))
+type HomeProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const options = readSearchOptions(params);
+  const catalog = await searchCatalog(options)
+    .then((result) => ({ status: "ready" as const, ...result }))
     .catch(() => ({ status: "unavailable" as const }));
+  const categories = catalog.status === "ready" ? catalog.categories : [];
 
   return (
     <main id="main-content">
@@ -60,6 +71,7 @@ export default async function Home() {
             from WooCommerce.
           </p>
         </div>
+        <CatalogFilters categories={categories} values={options} />
         <Catalog {...catalog} />
       </section>
 
@@ -106,4 +118,31 @@ export default async function Home() {
       </section>
     </main>
   );
+}
+
+function readSearchOptions(
+  params: Record<string, string | string[] | undefined>,
+): CatalogSearchOptions {
+  const availability = firstValue(params.availability);
+  const sort = firstValue(params.sort);
+
+  return {
+    query: firstValue(params.q),
+    category: firstValue(params.category),
+    availability:
+      availability === "instock" || availability === "outofstock"
+        ? availability
+        : undefined,
+    sort:
+      sort === "name" ||
+      sort === "price-asc" ||
+      sort === "price-desc" ||
+      sort === "featured"
+        ? sort
+        : "featured",
+  };
+}
+
+function firstValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
