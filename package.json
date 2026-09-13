@@ -12,6 +12,7 @@
     "projection:rebuild": "sh scripts/rebuild-projection.sh",
     "test": "npm run test --workspace @commerce/storefront",
     "typecheck": "npm run typecheck --workspace @commerce/storefront",
+    "verify:checkout": "sh scripts/verify-checkout.sh",
     "verify:stack": "sh scripts/verify-stack.sh"
   },
   "engines": {

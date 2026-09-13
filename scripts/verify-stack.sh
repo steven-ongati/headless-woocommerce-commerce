@@ -105,4 +105,6 @@ curl -fsS \
   'http://localhost:3000/api/cart?sku=NS-TRAIL-001' \
   >/dev/null
 
+sh scripts/verify-checkout.sh
+
 printf '%s\n' "Stack contract verified."
