@@ -7,6 +7,7 @@
 - Storefront: `GET /api/health` returns service, status, and timestamp.
 - Redis: `redis-cli ping`.
 - Meilisearch: `GET /health`.
+- Mailpit: `GET /api/v1/info`.
 - Readiness: `GET /api/readiness` reports WordPress, Redis, and projection state.
 - Setup: the storefront is gated on the successful exit of `wp-setup`.
 
@@ -29,12 +30,15 @@ No query variables, preview credentials, user content, or response bodies are lo
 
 Meilisearch requests emit the same request-ID, outcome, HTTP-status, and duration shape under the `catalog_projection_request` event. API keys, filters, documents, and response bodies are not logged.
 
+Private WooCommerce gateway calls emit `commerce_gateway_request` with request ID, outcome, status, and duration. Gateway secrets, buyer payloads, payment payloads, and response bodies are not logged.
+
 ## Operator commands
 
 ```sh
 docker compose ps
-docker compose logs --tail=100 storefront wordpress wp-setup redis meilisearch
+docker compose logs --tail=100 storefront wordpress wp-setup redis meilisearch mailpit
 npm run projection:rebuild
+npm run verify:checkout
 curl -fsS http://localhost:3000/api/readiness | jq
 docker compose restart storefront
 docker compose down
@@ -44,6 +48,8 @@ docker compose down --volumes
 Removing volumes is destructive only to local synthetic data. The seed command can recreate the reference catalog and field notes.
 
 `projection:rebuild` sends the local operations secret only in a request header. The protected `GET /api/operations/projection` endpoint returns fingerprints, document counts, rebuild time, and `fresh`, `drifted`, `unbuilt`, or `unavailable` status.
+
+Mailpit exposes captured synthetic WooCommerce messages at `http://localhost:8025`. Checkout verification temporarily mutates fixture price and stock, cancels pending verification orders, and restores the deterministic catalog before exit.
 
 ## Recovery exercise
 
@@ -56,6 +62,17 @@ Removing volumes is destructive only to local synthetic data. The seed command c
 7. Start WordPress and rerun the stack contract.
 
 This exercise demonstrates dependency failure behavior; it is not evidence of a production recovery-time objective.
+
+## Checkout recovery exercise
+
+1. Run `npm run verify:checkout` against the healthy stack.
+2. Confirm the same checkout idempotency key returns one order and a changed payload returns `409`.
+3. Confirm a successful simulator callback produces one `payment.succeeded` timeline entry after replay and decrements stock once.
+4. Confirm a failed callback releases its WooCommerce hold.
+5. Confirm two simultaneous reservations for one remaining unit produce one pending order and one conflict.
+6. Open Mailpit and confirm WooCommerce generated local customer and operator messages.
+
+The command automates these assertions. It does not exercise provider downtime, asynchronous callback delay, refund handling, or automated reconciliation.
 
 ## Backup boundary
 
