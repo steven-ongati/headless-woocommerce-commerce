@@ -1,0 +1,19 @@
+{
+  "name": "headless-woocommerce-commerce",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @commerce/storefront",
+    "dev": "npm run dev --workspace @commerce/storefront",
+    "lint": "npm run lint --workspace @commerce/storefront",
+    "test": "npm run test --workspace @commerce/storefront",
+    "typecheck": "npm run typecheck --workspace @commerce/storefront",
+    "verify:stack": "sh scripts/verify-stack.sh"
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  }
+}

@@ -1,0 +1,85 @@
+name: headless-woocommerce-commerce
+
+services:
+  db:
+    image: mysql:8.4.6
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD:-local-wordpress-password}
+      MYSQL_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD:-local-root-password}
+      MYSQL_USER: wordpress
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.8.2-php8.3-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-local-wordpress-password}
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DEBUG: "1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_ENVIRONMENT_TYPE', 'local' );
+        define( 'DISALLOW_FILE_EDIT', true );
+        define( 'COMMERCE_PREVIEW_SECRET', getenv( 'COMMERCE_PREVIEW_SECRET' ) );
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/wp-login.php >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "8080:80"
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
+
+  wp-setup:
+    image: wordpress:cli-2.12.0-php8.3
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_ADMIN_PASSWORD: ${WORDPRESS_ADMIN_PASSWORD:-local-admin-password}
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-local-wordpress-password}
+      WORDPRESS_DB_USER: wordpress
+    entrypoint: ["sh", "/scripts/bootstrap-wordpress.sh"]
+    user: "33:33"
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./scripts:/scripts:ro
+      - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
+
+  storefront:
+    build:
+      context: .
+      dockerfile: apps/storefront/Dockerfile
+    depends_on:
+      wp-setup:
+        condition: service_completed_successfully
+    environment:
+      COMMERCE_PREVIEW_SECRET: ${COMMERCE_PREVIEW_SECRET:-local-preview-secret-change-before-sharing}
+      NODE_ENV: production
+      WORDPRESS_GRAPHQL_URL: http://wordpress/graphql
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql_data:
+  wordpress_data:
