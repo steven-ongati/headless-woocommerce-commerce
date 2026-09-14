@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Commerce Reference
  * Description: Domain content, storefront projections, durable checkout commands, and deterministic fixtures.
- * Version: 0.3.1
+ * Version: 0.4.0
  * Requires at least: 6.8
  * Requires PHP: 8.3
  * Author: Steven Ongati

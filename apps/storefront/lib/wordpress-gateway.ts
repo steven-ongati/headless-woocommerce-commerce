@@ -1,6 +1,5 @@
-import { randomUUID } from "node:crypto";
-
 import type { OrderView } from "./checkout-contract";
+import { currentRequestId } from "./request-trace";
 
 export type InternalOrder = OrderView & {
   orderId: number;
@@ -16,6 +15,24 @@ export type PaymentEvent = {
     | "payment_intent.canceled";
   amount: number;
   currency: string;
+};
+
+export type AuthorityOperationalMetrics = {
+  checkout: {
+    total: number;
+    pending: number;
+    failed: number;
+    conflicts: number;
+    oldestPendingAgeSeconds: number;
+    maxProcessingSeconds: number;
+  };
+  callbacks: {
+    total: number;
+    pending: number;
+    failed: number;
+    oldestPendingAgeSeconds: number;
+    maxProcessingSeconds: number;
+  };
 };
 
 export class GatewayError extends Error {
@@ -89,6 +106,10 @@ export async function deliverPaymentEvent(
   );
 }
 
+export async function getAuthorityOperationalMetrics(): Promise<AuthorityOperationalMetrics> {
+  return gatewayRequest<AuthorityOperationalMetrics>("/operations/metrics");
+}
+
 async function gatewayRequest<T extends object>(
   path: string,
   init: RequestInit = {},
@@ -99,7 +120,7 @@ async function gatewayRequest<T extends object>(
     throw new GatewayError("The commerce gateway is not configured.", 503);
   }
 
-  const requestId = randomUUID();
+  const requestId = currentRequestId();
   const startedAt = performance.now();
 
   try {

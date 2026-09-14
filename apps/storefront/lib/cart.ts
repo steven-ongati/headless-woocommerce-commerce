@@ -153,9 +153,15 @@ export async function clearCart(cartId: string): Promise<void> {
 }
 
 async function readCart(cartId: string): Promise<StoredCart> {
-  const stored = await withRedis((client) =>
-    client.get(cartKey(cartId)),
-  );
+  const stored = await withRedis(async (client) => {
+    const value = await client.get(cartKey(cartId));
+    await client.hIncrBy(
+      "commerce:metrics",
+      value ? "cart.read.hit" : "cart.read.miss",
+      1,
+    );
+    return value;
+  });
   if (!stored) {
     return {
       id: cartId,
@@ -174,9 +180,13 @@ async function readCart(cartId: string): Promise<StoredCart> {
 async function writeCart(cart: StoredCart): Promise<void> {
   cart.updatedAt = new Date().toISOString();
   await withRedis((client) =>
-    client.set(cartKey(cart.id), JSON.stringify(cart), {
-      EX: CART_TTL_SECONDS,
-    }),
+    client
+      .multi()
+      .set(cartKey(cart.id), JSON.stringify(cart), {
+        EX: CART_TTL_SECONDS,
+      })
+      .hIncrBy("commerce:metrics", "cart.write", 1)
+      .exec(),
   );
 }
 

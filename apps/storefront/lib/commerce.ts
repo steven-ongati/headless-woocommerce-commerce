@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { currentRequestId } from "./request-trace";
 
 export { formatPrice } from "./money";
 
@@ -109,7 +109,7 @@ async function queryCommerce<T>(
     throw new CommerceDataError("WORDPRESS_GRAPHQL_URL is not configured.");
   }
 
-  const requestId = randomUUID();
+  const requestId = currentRequestId();
   const startedAt = performance.now();
 
   try {

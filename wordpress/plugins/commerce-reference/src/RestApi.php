@@ -59,6 +59,15 @@ final class RestApi
                 'permission_callback' => [self::class, 'authorize'],
             ]
         );
+        register_rest_route(
+            self::NAMESPACE,
+            '/operations/metrics',
+            [
+                'methods' => 'GET',
+                'callback' => [self::class, 'getOperationalMetrics'],
+                'permission_callback' => [self::class, 'authorize'],
+            ]
+        );
     }
 
     public static function authorize(WP_REST_Request $request): true|WP_Error
@@ -164,6 +173,18 @@ final class RestApi
         }
     }
 
+    public static function getOperationalMetrics(): WP_REST_Response
+    {
+        try {
+            return self::response(Database::operationalMetrics());
+        } catch (\Throwable $error) {
+            return self::response(
+                ['error' => 'Operational metrics could not be read.'],
+                503
+            );
+        }
+    }
+
     private static function jsonPayload(WP_REST_Request $request): array
     {
         $payload = $request->get_json_params();
@@ -180,7 +201,26 @@ final class RestApi
     ): WP_REST_Response {
         $response = new WP_REST_Response($body, $status);
         $response->header('Cache-Control', 'private, no-store');
+        $requestId = self::requestId();
+        if ($requestId !== '') {
+            $response->header('X-Request-Id', $requestId);
+        }
+        error_log(
+            wp_json_encode([
+                'event' => 'commerce_authority_response',
+                'requestId' => $requestId,
+                'status' => $status,
+            ])
+        );
 
         return $response;
+    }
+
+    private static function requestId(): string
+    {
+        $requestId = trim((string) ($_SERVER['HTTP_X_REQUEST_ID'] ?? ''));
+        return preg_match('/^[A-Za-z0-9_-]{8,64}$/', $requestId)
+            ? $requestId
+            : '';
     }
 }

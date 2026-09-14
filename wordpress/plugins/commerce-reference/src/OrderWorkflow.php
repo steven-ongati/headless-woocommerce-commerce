@@ -222,9 +222,10 @@ final class OrderWorkflow
             throw new WorkflowError('The payment event is already being processed.', 409);
         }
 
-        $order = self::findOrderByPaymentIntent($paymentIntentId);
+        $order = null;
 
         try {
+            $order = self::findOrderByPaymentIntent($paymentIntentId);
             self::assertPaymentMatchesOrder($order, $amount, $currency);
 
             if ($eventType === 'payment_intent.succeeded') {
@@ -271,7 +272,7 @@ final class OrderWorkflow
         } catch (\Throwable $error) {
             Database::completeEvent(
                 $eventKey,
-                $order->get_id(),
+                $order instanceof WC_Order ? $order->get_id() : null,
                 'failed',
                 'Payment event processing failed.'
             );

@@ -20,11 +20,17 @@ import {
   enforceRequestLimit,
   RateLimitError,
 } from "../../../lib/rate-limit";
+import { incrementMetric } from "../../../lib/operational-metrics";
+import { withRequestTrace } from "../../../lib/request-trace";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  return withRequestTrace(request, async () => handleCheckout(request));
+}
+
+async function handleCheckout(request: NextRequest): Promise<NextResponse> {
   try {
     requireTrustedBrowserRequest(request);
     const input = await checkoutInput(request);
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
       cartId,
       input.idempotencyKey,
     );
+    await incrementMetric("checkout.accepted");
 
     return NextResponse.json(
       {
@@ -64,6 +71,14 @@ export async function POST(request: NextRequest) {
       },
     );
   } catch (error) {
+    await incrementMetric("checkout.rejected").catch(() => undefined);
+    if (
+      error instanceof GatewayError &&
+      error.status === 409 &&
+      error.message.includes("quantity is no longer available")
+    ) {
+      await incrementMetric("stock.conflict").catch(() => undefined);
+    }
     return checkoutError(error);
   }
 }

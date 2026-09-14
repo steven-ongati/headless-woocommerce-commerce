@@ -1,7 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import { CommerceProduct, getCatalog } from "./commerce";
 import { withRedis } from "./redis";
+import { currentRequestId } from "./request-trace";
 
 const INDEX_UID = "catalog-products";
 const METADATA_KEY = "commerce:projection:catalog";
@@ -364,7 +365,7 @@ async function meiliRequest<T>(
     throw new Error("Meilisearch is not configured.");
   }
 
-  const requestId = randomUUID();
+  const requestId = currentRequestId();
   const startedAt = performance.now();
   const response = await fetch(`${endpoint}${path}`, {
     ...init,

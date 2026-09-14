@@ -184,7 +184,7 @@ final class Database
 
     public static function completeEvent(
         string $eventKey,
-        int $orderId,
+        ?int $orderId,
         string $state,
         string $errorMessage = ''
     ): void {
@@ -206,6 +206,64 @@ final class Database
         if ($updated === false) {
             throw new \RuntimeException('The payment event result could not be recorded.');
         }
+    }
+
+    public static function operationalMetrics(): array
+    {
+        global $wpdb;
+
+        $checkout = $wpdb->get_row(
+            'SELECT
+                COUNT(*) AS total,
+                COALESCE(SUM(state = "received"), 0) AS pending,
+                COALESCE(SUM(state = "failed"), 0) AS failed,
+                COALESCE(SUM(state = "failed" AND http_status = 409), 0) AS conflicts,
+                COALESCE(MAX(
+                    CASE
+                        WHEN state = "received"
+                        THEN TIMESTAMPDIFF(SECOND, created_at, UTC_TIMESTAMP())
+                        ELSE 0
+                    END
+                ), 0) AS oldestPendingAgeSeconds,
+                COALESCE(MAX(TIMESTAMPDIFF(SECOND, created_at, updated_at)), 0)
+                    AS maxProcessingSeconds
+            FROM ' . self::checkoutTable(),
+            ARRAY_A
+        );
+        $callbacks = $wpdb->get_row(
+            'SELECT
+                COUNT(*) AS total,
+                COALESCE(SUM(state = "received"), 0) AS pending,
+                COALESCE(SUM(state = "failed"), 0) AS failed,
+                COALESCE(MAX(
+                    CASE
+                        WHEN state = "received"
+                        THEN TIMESTAMPDIFF(SECOND, created_at, UTC_TIMESTAMP())
+                        ELSE 0
+                    END
+                ), 0) AS oldestPendingAgeSeconds,
+                COALESCE(MAX(TIMESTAMPDIFF(SECOND, created_at, updated_at)), 0)
+                    AS maxProcessingSeconds
+            FROM ' . self::eventTable(),
+            ARRAY_A
+        );
+
+        if (!is_array($checkout) || !is_array($callbacks)) {
+            throw new \RuntimeException('Operational metrics could not be read.');
+        }
+
+        return [
+            'checkout' => self::integerMetrics($checkout),
+            'callbacks' => self::integerMetrics($callbacks),
+        ];
+    }
+
+    private static function integerMetrics(array $metrics): array
+    {
+        return array_map(
+            static fn (mixed $value): int => (int) $value,
+            $metrics
+        );
     }
 
     private static function checkoutTable(): string
