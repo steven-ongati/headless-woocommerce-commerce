@@ -23,7 +23,7 @@ async function handleWebhook(request: NextRequest): Promise<NextResponse> {
     const result = await processStripeWebhook(payload, signature);
     await incrementMetric(
       result.duplicate ? "callback.duplicate" : "callback.accepted",
-    );
+    ).catch(() => undefined);
 
     return NextResponse.json(
       {

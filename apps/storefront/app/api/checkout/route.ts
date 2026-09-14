@@ -58,7 +58,7 @@ async function handleCheckout(request: NextRequest): Promise<NextResponse> {
       cartId,
       input.idempotencyKey,
     );
-    await incrementMetric("checkout.accepted");
+    await incrementMetric("checkout.accepted").catch(() => undefined);
 
     return NextResponse.json(
       {
