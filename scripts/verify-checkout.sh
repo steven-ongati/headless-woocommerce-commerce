@@ -13,7 +13,7 @@ run_dir="$(mktemp -d)"
 cookie_jar="${run_dir}/cookies.txt"
 
 new_uuid() {
-  node -e 'console.log(crypto.randomUUID())'
+  uuidgen | tr 'A-F' 'a-f'
 }
 
 reset_catalog() {

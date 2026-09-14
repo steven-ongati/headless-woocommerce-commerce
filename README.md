@@ -93,9 +93,12 @@ npm run test
 npm run build
 npm run verify:checkout
 npm run verify:stack
+npm run verify:recovery
 ```
 
 `verify:stack` expects the Compose services to be running. It rebuilds and validates the catalog projection, readiness state, authoritative GraphQL contract, Redis cart, authoritative checkout repricing, idempotent retries, successful and failed payment effects, Mailpit delivery, and concurrent attempts to reserve the final unit.
+
+`verify:recovery` additionally exercises a local MySQL authority backup, deliberate synthetic catalog mutation, restore, and search projection rebuild. The operator runbook also defines a candidate plugin compatibility and rollback exercise.
 
 ## Checkout flow
 

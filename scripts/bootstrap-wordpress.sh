@@ -21,8 +21,21 @@ wp option update permalink_structure "/%postname%/"
 wp option update blogdescription "Synthetic field goods for considered journeys"
 wp option update woocommerce_hold_stock_minutes "15"
 
-wp plugin install woocommerce --version=10.7.0 --activate
-wp plugin install wp-graphql --version=2.22.2 --activate
+ensure_plugin_version() {
+  plugin="$1"
+  version="$2"
+  installed_version="$(wp plugin get "${plugin}" --field=version 2>/dev/null || true)"
+
+  if [ "${installed_version}" != "${version}" ]; then
+    wp plugin install "${plugin}" --version="${version}" --force --activate
+    return
+  fi
+
+  wp plugin activate "${plugin}"
+}
+
+ensure_plugin_version woocommerce "${WOOCOMMERCE_VERSION:-10.7.0}"
+ensure_plugin_version wp-graphql "${WP_GRAPHQL_VERSION:-2.22.2}"
 wp plugin activate commerce-reference
 
 wp commerce-reference seed

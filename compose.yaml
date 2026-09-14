@@ -44,7 +44,7 @@ services:
       timeout: 5s
       retries: 30
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:${WORDPRESS_PORT:-8080}:80"
     volumes:
       - wordpress_data:/var/www/html
       - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
@@ -53,7 +53,7 @@ services:
     image: axllent/mailpit:v1.27.8
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 5s
@@ -71,6 +71,8 @@ services:
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-local-wordpress-password}
       WORDPRESS_DB_USER: wordpress
+      WOOCOMMERCE_VERSION: ${WOOCOMMERCE_VERSION:-10.7.0}
+      WP_GRAPHQL_VERSION: ${WP_GRAPHQL_VERSION:-2.22.2}
     entrypoint: ["sh", "/scripts/bootstrap-wordpress.sh"]
     user: "33:33"
     volumes:
@@ -102,7 +104,7 @@ services:
       timeout: 3s
       retries: 12
     ports:
-      - "127.0.0.1:7700:7700"
+      - "127.0.0.1:${MEILISEARCH_PORT:-7700}:7700"
     restart: unless-stopped
     volumes:
       - meilisearch_data:/meili_data
@@ -137,7 +139,7 @@ services:
       timeout: 5s
       retries: 12
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${STOREFRONT_PORT:-3000}:3000"
 
 volumes:
   meilisearch_data:

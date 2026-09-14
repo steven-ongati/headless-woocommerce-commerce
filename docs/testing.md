@@ -14,6 +14,8 @@
 | Checkout contract | `npm run verify:checkout` | Authoritative repricing, idempotency replay/conflict, stock reduction/release, callback replay, Mailpit delivery, and final-unit contention |
 | Runtime contract | `npm run verify:stack` | Health, operations authorization, catalog projection, search freshness, readiness, cart revalidation, and the checkout contract |
 | Fault injection | Recovery exercise in `operations.md` | Meilisearch outage fallback, fingerprint drift, and authoritative cart repricing |
+| Authority recovery | `npm run verify:recovery` | MySQL backup, deliberate synthetic mutation, restore, projection rebuild, and fingerprint equality |
+| Plugin compatibility | `npm run verify:upgrade` | Candidate WooCommerce/WPGraphQL contract followed by committed-pin rollback contract |
 
 ## Manual accessibility checklist
 

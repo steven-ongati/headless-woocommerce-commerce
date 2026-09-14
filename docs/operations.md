@@ -39,6 +39,8 @@ docker compose ps
 docker compose logs --tail=100 storefront wordpress wp-setup redis meilisearch mailpit
 npm run projection:rebuild
 npm run verify:checkout
+npm run authority:backup
+npm run verify:recovery
 curl -fsS http://localhost:3000/api/readiness | jq
 docker compose restart storefront
 docker compose down
@@ -74,6 +76,28 @@ This exercise demonstrates dependency failure behavior; it is not evidence of a 
 
 The command automates these assertions. It does not exercise provider downtime, asynchronous callback delay, refund handling, or automated reconciliation.
 
-## Backup boundary
+## Authority backup and restore exercise
 
-This phase has no production backup policy. MySQL remains the authority requiring backup; Redis carts are disposable session state and Meilisearch is rebuilt from WooCommerce. Production work would still require encrypted authority backups, media backup, restore drills, retention policy, and measured recovery objectives.
+`npm run authority:backup` writes a mode-`600` MySQL dump under ignored `artifacts/backups`. To restore one:
+
+```sh
+CONFIRM_SYNTHETIC_RESTORE=restore-local-synthetic-data \
+  npm run authority:restore -- artifacts/backups/<backup>.sql
+```
+
+`npm run verify:recovery` backs up the authority, changes one synthetic product, restores the dump, rebuilds the projection, and confirms the authoritative catalog fingerprint returns to its original value.
+
+This is a local synthetic recovery exercise, not a production backup policy or measured recovery objective. A deployed system would still require encrypted off-site authority and media backups, retention and deletion policy, credential separation, scheduled restore drills, and measured recovery-point and recovery-time evidence.
+
+## Pinned plugin upgrade exercise
+
+The setup service accepts candidate versions without changing the committed pins:
+
+```sh
+CONFIRM_SYNTHETIC_PLUGIN_TEST=test-local-plugin-upgrade \
+WOOCOMMERCE_CANDIDATE_VERSION=<candidate> \
+WP_GRAPHQL_CANDIDATE_VERSION=<candidate> \
+npm run verify:upgrade
+```
+
+The exercise installs the candidates into the local synthetic authority, runs the stack contract, restores the committed baseline versions, and runs the contract again. It is compatibility evidence for the tested pair, not a claim that arbitrary WordPress plugins or future versions are safe.

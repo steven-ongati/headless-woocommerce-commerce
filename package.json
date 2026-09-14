@@ -6,6 +6,8 @@
     "apps/*"
   ],
   "scripts": {
+    "authority:backup": "sh scripts/backup-authority.sh",
+    "authority:restore": "sh scripts/restore-authority.sh",
     "build": "npm run build --workspace @commerce/storefront",
     "dev": "npm run dev --workspace @commerce/storefront",
     "lint": "npm run lint --workspace @commerce/storefront",
@@ -14,6 +16,8 @@
     "test": "npm run test --workspace @commerce/storefront",
     "typecheck": "npm run typecheck --workspace @commerce/storefront",
     "verify:checkout": "sh scripts/verify-checkout.sh",
+    "verify:recovery": "sh scripts/verify-authority-recovery.sh",
+    "verify:upgrade": "sh scripts/verify-plugin-upgrade.sh",
     "verify:stack": "sh scripts/verify-stack.sh"
   },
   "engines": {
