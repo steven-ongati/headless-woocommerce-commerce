@@ -117,6 +117,8 @@ BENCHMARK_SAMPLES=50 npm run benchmark:local
 
 The JSON artifact records the revision, timestamp, methodology, and endpoint distributions. Results vary with local container state and host contention and must not be treated as load, concurrency, cloud, or production-capacity evidence.
 
+A representative measured run is retained in `docs/evidence/local-compose-benchmark.json`.
+
 ## Runbooks
 
 - `docs/runbooks/projection-drift.md`

@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-09-14T14:48:23Z",
+  "revision": "2de1aea",
+  "environment": "local Docker Compose reference stack",
+  "methodology": {
+    "concurrency": 1,
+    "warmups": 3,
+    "percentileMethod": "nearest-rank",
+    "transport": "loopback HTTP"
+  },
+  "endpoints": {
+    "storefront_catalog": {
+      "samples": 25,
+      "latencyMs": {
+        "min": 74.952,
+        "average": 82.915,
+        "p50": 79.935,
+        "p95": 97.721,
+        "max": 98.365
+      }
+    },
+    "wordpress_graphql": {
+      "samples": 25,
+      "latencyMs": {
+        "min": 70.152,
+        "average": 71.925,
+        "p50": 71.648,
+        "p95": 75.09,
+        "max": 76.294
+      }
+    },
+    "storefront_readiness": {
+      "samples": 25,
+      "latencyMs": {
+        "min": 71.99,
+        "average": 76.252,
+        "p50": 73.813,
+        "p95": 83.479,
+        "max": 87.459
+      }
+    }
+  }
+}
