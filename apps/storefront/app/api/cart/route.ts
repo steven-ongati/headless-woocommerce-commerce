@@ -11,6 +11,10 @@ import {
   setCartItemQuantity,
 } from "../../../lib/cart";
 import { CART_COOKIE, isValidCartId } from "../../../lib/cart-session";
+import {
+  RequestSecurityError,
+  requireTrustedBrowserRequest,
+} from "../../../lib/request-security";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,6 +49,7 @@ async function handleCartRequest(
   operation: (cartId: string) => Promise<unknown>,
 ): Promise<NextResponse> {
   try {
+    requireTrustedBrowserRequest(request);
     const cookieStore = await cookies();
     const existingCartId = cookieStore.get(CART_COOKIE)?.value;
     const cartId = isValidCartId(existingCartId) ? existingCartId : randomUUID();
@@ -63,9 +68,12 @@ async function handleCartRequest(
     }
     return response;
   } catch (error) {
-    const status = error instanceof CartError ? error.status : 503;
+    const status =
+      error instanceof CartError || error instanceof RequestSecurityError
+        ? error.status
+        : 503;
     const message =
-      error instanceof CartError
+      error instanceof CartError || error instanceof RequestSecurityError
         ? error.message
         : "The cart service is temporarily unavailable.";
     return NextResponse.json(

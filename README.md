@@ -8,7 +8,7 @@ Phases 1 through 3 include:
 - an idempotent WP-CLI seed command for four synthetic products and two field notes;
 - a custom WordPress editorial type with revisions and GraphQL support;
 - a server-rendered, responsive Next.js catalog and editorial journey;
-- secret-gated draft previews, bounded upstream requests, health checks, and structured request logs; and
+- expiring signed draft previews, bounded upstream requests, health checks, and structured request logs; and
 - a rebuildable Meilisearch catalog projection with URL-addressable facets and authoritative fallback;
 - Redis-backed, seven-day cart sessions with HttpOnly identifiers and WooCommerce price and availability revalidation;
 - fingerprint-based projection drift detection, an operations-secret-protected rebuild path, and dependency readiness reporting; and
@@ -105,14 +105,17 @@ Add a synthetic product to the cart, open `/cart`, and enter an address ending i
 
 ## Preview flow
 
-Preview credentials remain server-side. With matching `COMMERCE_PREVIEW_SECRET` values in WordPress and the storefront, an editor integration can request:
+Preview credentials remain server-side. With matching `COMMERCE_PREVIEW_SECRET` values in WordPress and the storefront, generate a ten-minute signed URL:
 
-```text
-/api/preview?secret=<local-secret>&slug=<field-note-slug>
+```sh
+set -a
+. ./.env
+set +a
+npm run preview:url -- a-weekend-above-the-tree-line
 ```
 
-The endpoint validates the secret with a timing-safe comparison, validates the slug, enables the framework draft-mode cookie, and redirects without forwarding the credential to WordPress from the browser. This is local preview groundwork, not a complete editorial SSO integration.
+The endpoint verifies the HMAC signature, slug, and expiry before enabling a matching server-side preview session. Neither the shared secret nor the WordPress preview credential appears in the URL. This is local preview groundwork, not a complete editorial SSO integration.
 
 ## Current boundary
 
-Phase 3 is a local, synthetic commerce workflow rather than a production checkout. It excludes validated tax and shipping integrations, promotions, customer accounts, refunds, automated hold expiry, asynchronous reconciliation workers, cloud deployment, and production observability. Stripe support is test mode only, and Mailpit proves local message generation rather than deliverability through a production email provider.
+Phase 4 remains a local, synthetic commerce workflow rather than a production checkout. It excludes validated tax and shipping integrations, promotions, customer accounts, refunds, automated hold expiry, asynchronous reconciliation workers, cloud deployment, and production observability. Stripe support is test mode only, and Mailpit proves local message generation rather than deliverability through a production email provider.

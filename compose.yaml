@@ -44,7 +44,7 @@ services:
       timeout: 5s
       retries: 30
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - wordpress_data:/var/www/html
       - ./wordpress/plugins/commerce-reference:/var/www/html/wp-content/plugins/commerce-reference:ro
@@ -137,7 +137,7 @@ services:
       timeout: 5s
       retries: 12
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
 volumes:
   meilisearch_data:

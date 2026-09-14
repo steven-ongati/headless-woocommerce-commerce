@@ -12,18 +12,33 @@ import {
   createAuthoritativeOrder,
   GatewayError,
 } from "../../../lib/wordpress-gateway";
+import {
+  RequestSecurityError,
+  requireTrustedBrowserRequest,
+} from "../../../lib/request-security";
+import {
+  enforceRequestLimit,
+  RateLimitError,
+} from "../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    requireTrustedBrowserRequest(request);
     const input = await checkoutInput(request);
     const cookieStore = await cookies();
     const cartId = cookieStore.get(CART_COOKIE)?.value;
     if (!isValidCartId(cartId)) {
       throw new CartError("Add a product before checkout.", 400);
     }
+    await enforceRequestLimit({
+      scope: "checkout",
+      subject: cartId,
+      limit: 10,
+      windowSeconds: 60,
+    });
 
     const lines = await getCheckoutLines(cartId);
     const order = await createAuthoritativeOrder({
@@ -95,7 +110,15 @@ function checkoutError(error: unknown): NextResponse {
   const known =
     error instanceof CartError ||
     error instanceof GatewayError ||
-    error instanceof PaymentError;
+    error instanceof PaymentError ||
+    error instanceof RequestSecurityError ||
+    error instanceof RateLimitError;
+  const headers: Record<string, string> = {
+    "cache-control": "private, no-store",
+  };
+  if (error instanceof RateLimitError) {
+    headers["retry-after"] = String(error.retryAfter);
+  }
   return NextResponse.json(
     {
       error: known
@@ -104,7 +127,7 @@ function checkoutError(error: unknown): NextResponse {
     },
     {
       status: known ? error.status : 503,
-      headers: { "cache-control": "private, no-store" },
+      headers,
     },
   );
 }

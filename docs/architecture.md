@@ -66,7 +66,7 @@ The storefront needs a modern rendering layer without moving commerce authority 
 | Payment callback receipt | Plugin event table | Claims event identity and records processing outcome |
 | Local email evidence | WooCommerce + Mailpit | Generates standard order email and captures it locally |
 | Presentation and navigation | Next.js | Owns UI composition |
-| Draft-mode cookie | Next.js | Enables server-side preview reads |
+| Signed preview URL and expiring cookie | Next.js | Enables a bounded server-side preview session |
 
 ## Checkout state flow
 

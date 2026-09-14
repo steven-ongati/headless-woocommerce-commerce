@@ -1,26 +1,39 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { draftMode } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+import {
+  PREVIEW_EXPIRY_COOKIE,
+  verifyPreviewToken,
+} from "../../../lib/preview-token";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const expectedSecret = process.env.COMMERCE_PREVIEW_SECRET ?? "";
-  const suppliedSecret = request.nextUrl.searchParams.get("secret") ?? "";
   const slug = request.nextUrl.searchParams.get("slug") ?? "";
+  const expires = request.nextUrl.searchParams.get("expires") ?? "";
+  const signature = request.nextUrl.searchParams.get("signature") ?? "";
 
-  if (!isValidSecret(suppliedSecret, expectedSecret) || !isValidSlug(slug)) {
+  if (
+    !verifyPreviewToken({
+      slug,
+      expires,
+      signature,
+      secret: process.env.COMMERCE_PREVIEW_SECRET ?? "",
+    })
+  ) {
     return NextResponse.json(
       { error: "Invalid preview request." },
-      { status: 401 },
+      {
+        status: 401,
+        headers: { "cache-control": "private, no-store" },
+      },
     );
   }
 
   const mode = await draftMode();
   mode.enable();
 
-  return new NextResponse(null, {
+  const response = new NextResponse(null, {
     status: 307,
     headers: {
       "cache-control": "private, no-store",
@@ -28,16 +41,13 @@ export async function GET(request: NextRequest) {
       referrer: "no-referrer",
     },
   });
-}
-
-function isValidSecret(supplied: string, expected: string): boolean {
-  if (supplied.length === 0 || supplied.length !== expected.length) {
-    return false;
-  }
-
-  return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
-}
-
-function isValidSlug(slug: string): boolean {
-  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+  const expiry = Number(expires);
+  response.cookies.set(PREVIEW_EXPIRY_COOKIE, expires, {
+    httpOnly: true,
+    maxAge: Math.max(0, expiry - Math.floor(Date.now() / 1_000)),
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    path: "/",
+  });
+  return response;
 }

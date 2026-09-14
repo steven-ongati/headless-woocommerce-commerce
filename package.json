@@ -9,6 +9,7 @@
     "build": "npm run build --workspace @commerce/storefront",
     "dev": "npm run dev --workspace @commerce/storefront",
     "lint": "npm run lint --workspace @commerce/storefront",
+    "preview:url": "node scripts/create-preview-url.mjs",
     "projection:rebuild": "sh scripts/rebuild-projection.sh",
     "test": "npm run test --workspace @commerce/storefront",
     "typecheck": "npm run typecheck --workspace @commerce/storefront",

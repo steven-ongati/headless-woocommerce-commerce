@@ -8,6 +8,7 @@
 | Type safety | `npm run typecheck` | Strict TypeScript compilation |
 | Static quality | `npm run lint` | Next.js and TypeScript rules |
 | Unit | `npm run test` | Money formatting, deterministic fingerprints, facet filtering, cart revalidation, and payment signature validation |
+| Request security | `npm run test` | Preview expiry/signature and cross-origin mutation rejection |
 | Production compile | `npm run build` | Next.js standalone output |
 | Compose syntax | `docker compose config --quiet` | Resolved configuration parses |
 | Checkout contract | `npm run verify:checkout` | Authoritative repricing, idempotency replay/conflict, stock reduction/release, callback replay, Mailpit delivery, and final-unit contention |

@@ -1,7 +1,11 @@
-import { draftMode } from "next/headers";
+import { cookies, draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { getStory } from "../../../lib/commerce";
+import {
+  isPreviewSessionActive,
+  PREVIEW_EXPIRY_COOKIE,
+} from "../../../lib/preview-token";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +16,13 @@ type FieldNotePageProps = {
 export default async function FieldNotePage({ params }: FieldNotePageProps) {
   const { slug } = await params;
   const { isEnabled } = await draftMode();
-  const previewToken = isEnabled
+  const cookieStore = await cookies();
+  const previewEnabled =
+    isEnabled &&
+    isPreviewSessionActive(
+      cookieStore.get(PREVIEW_EXPIRY_COOKIE)?.value,
+    );
+  const previewToken = previewEnabled
     ? (process.env.COMMERCE_PREVIEW_SECRET ?? "")
     : "";
   const story = await getStory(slug, previewToken).catch(() => null);
@@ -23,7 +33,7 @@ export default async function FieldNotePage({ params }: FieldNotePageProps) {
 
   return (
     <main id="main-content" className="field-note shell">
-      {isEnabled ? (
+      {previewEnabled ? (
         <p className="preview-banner" role="status">
           Preview mode · unpublished WordPress content may be visible
         </p>
