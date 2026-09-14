@@ -194,16 +194,18 @@ held_before_failure="$(wp_eval '
   echo wc_get_held_stock_quantity($product);
 ')"
 test "${held_before_failure}" -eq 1
+failure_provider_event="evt_failure_$(new_uuid)"
+failure_event_body="$(
+  jq -nc \
+    --arg event "${failure_provider_event}" \
+    --arg intent "${failure_intent}" \
+    '{providerEventId:$event,paymentIntentId:$intent,type:"payment_intent.payment_failed",amount:3400,currency:"usd"}'
+)"
 failure_event="$(
   curl -fsS \
     -H "x-commerce-gateway-secret: ${gateway_secret}" \
     -H 'content-type: application/json' \
-    --data "$(
-      jq -nc \
-        --arg event "evt_failure_$(new_uuid)" \
-        --arg intent "${failure_intent}" \
-        '{providerEventId:$event,paymentIntentId:$intent,type:"payment_intent.payment_failed",amount:3400,currency:"usd"}'
-    )" \
+    --data "${failure_event_body}" \
     http://localhost:8080/wp-json/commerce-reference/v1/payment-events
 )"
 echo "${failure_event}" | jq -e '
@@ -216,6 +218,29 @@ held_after_failure="$(wp_eval '
   echo wc_get_held_stock_quantity($product);
 ')"
 test "${held_after_failure}" -eq 0
+failure_replay="$(
+  curl -fsS \
+    -H "x-commerce-gateway-secret: ${gateway_secret}" \
+    -H 'content-type: application/json' \
+    --data "${failure_event_body}" \
+    http://localhost:8080/wp-json/commerce-reference/v1/payment-events
+)"
+echo "${failure_replay}" | jq -e '.duplicate == true' >/dev/null
+conflicting_event_status="$(
+  curl -sS \
+    -o "${run_dir}/conflicting-event.json" \
+    -w '%{http_code}' \
+    -H "x-commerce-gateway-secret: ${gateway_secret}" \
+    -H 'content-type: application/json' \
+    --data "$(
+      echo "${failure_event_body}" \
+        | jq '.amount = 3500'
+    )" \
+    http://localhost:8080/wp-json/commerce-reference/v1/payment-events
+)"
+test "${conflicting_event_status}" = "409"
+jq -e '.error | contains("conflicts")' \
+  "${run_dir}/conflicting-event.json" >/dev/null
 
 docker compose run --rm --entrypoint wp wp-setup eval '
   $product = wc_get_product(wc_get_product_id_by_sku("NS-SHELL-004"));
@@ -290,4 +315,33 @@ curl -fsS \
   | jq -e '.status == "cancelled"' \
   >/dev/null
 
-printf '%s\n' "Checkout repricing, idempotency, payment outcomes, email, and stock contention verified."
+webhook_secret="${STRIPE_WEBHOOK_SECRET:-local-webhook-secret-change-before-sharing}"
+webhook_payload='{"id":"evt_delayed_fixture","type":"payment_intent.succeeded","data":{"object":{"id":"pi_delayed_fixture","status":"succeeded","amount":3400,"currency":"usd"}}}'
+delayed_at="$(( $(date +%s) - 301 ))"
+delayed_digest="$(
+  printf '%s' "${delayed_at}.${webhook_payload}" \
+    | openssl dgst -sha256 -hmac "${webhook_secret}" \
+    | awk '{ print $NF }'
+)"
+delayed_status="$(
+  curl -sS \
+    -o "${run_dir}/delayed-webhook.json" \
+    -w '%{http_code}' \
+    -H "stripe-signature: t=${delayed_at},v1=${delayed_digest}" \
+    -H 'content-type: application/json' \
+    --data "${webhook_payload}" \
+    http://localhost:3000/api/payments/webhook
+)"
+invalid_status="$(
+  curl -sS \
+    -o "${run_dir}/invalid-webhook.json" \
+    -w '%{http_code}' \
+    -H "stripe-signature: t=$(date +%s),v1=$(printf '0%.0s' $(seq 1 64))" \
+    -H 'content-type: application/json' \
+    --data "${webhook_payload}" \
+    http://localhost:3000/api/payments/webhook
+)"
+test "${delayed_status}" = "400"
+test "${invalid_status}" = "400"
+
+printf '%s\n' "Checkout, callback replay/conflict, email, and stock contention verified."

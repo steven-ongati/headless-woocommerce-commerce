@@ -22,6 +22,8 @@
 - Stripe mode rejects any secret that does not begin with `sk_test_`.
 - Stripe-style webhook signatures use HMAC-SHA256, timing-safe comparison, and a five-minute timestamp window.
 - Payment callbacks are claimed durably before order mutation and conflicting replays are rejected.
+- Invalid and expired callback signatures are rejected before authority mutation.
+- Request IDs are bounded and never used as authorization credentials.
 - No card number, CVC, or browser-supplied order amount is stored.
 - Browser requests do not receive the WordPress GraphQL endpoint or preview secret.
 - Upstream GraphQL calls use a five-second deadline.

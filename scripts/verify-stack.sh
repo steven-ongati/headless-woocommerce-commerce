@@ -107,4 +107,22 @@ curl -fsS \
 
 sh scripts/verify-checkout.sh
 
+metrics="$(
+  curl -fsS \
+    -H "x-operations-secret: ${operations_secret}" \
+    -H 'x-request-id: stack_contract_trace' \
+    http://localhost:3000/api/operations/metrics
+)"
+echo "${metrics}" | jq -e '
+  (.observedAt | type == "string") and
+  .authority.checkout.total > 0 and
+  .authority.callbacks.total > 0 and
+  .authority.checkout.oldestPendingAgeSeconds >= 0 and
+  .authority.callbacks.oldestPendingAgeSeconds >= 0 and
+  .projection.lagSeconds >= 0 and
+  .redis.activeCarts >= 0 and
+  .redis.counters["cart.read.hit"] > 0 and
+  .redis.counters["callback.rejected"] >= 2
+' >/dev/null
+
 printf '%s\n' "Stack contract verified."

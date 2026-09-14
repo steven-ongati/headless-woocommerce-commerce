@@ -16,6 +16,8 @@
 | Fault injection | Recovery exercise in `operations.md` | Meilisearch outage fallback, fingerprint drift, and authoritative cart repricing |
 | Authority recovery | `npm run verify:recovery` | MySQL backup, deliberate synthetic mutation, restore, projection rebuild, and fingerprint equality |
 | Plugin compatibility | `npm run verify:upgrade` | Candidate WooCommerce/WPGraphQL contract followed by committed-pin rollback contract |
+| Operational metrics | `npm run verify:stack` | Checkout and callback ages, projection lag, cart counters, rejected callbacks, and correlated request IDs |
+| Local benchmark | `npm run benchmark:local` | Sequential loopback latency distribution with explicit methodology and truth boundary |
 
 ## Manual accessibility checklist
 

@@ -49,6 +49,8 @@ The storefront needs a modern rendering layer without moving commerce authority 
 13. A signed callback is durably claimed before WooCommerce completes or fails the order.
 14. Successful payment reduces stock through WooCommerce and emits order email; failure or cancellation releases the hold.
 15. The order page reads the authoritative status and durable support timeline through the private gateway.
+16. API entry points accept or create a bounded request ID and propagate it through gateway, GraphQL, and projection calls.
+17. A protected operations endpoint combines durable checkout/callback ages, projection lag, active-cart count, and Redis counters.
 
 ## Data ownership
 

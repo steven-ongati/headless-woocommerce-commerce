@@ -32,6 +32,10 @@ Meilisearch requests emit the same request-ID, outcome, HTTP-status, and duratio
 
 Private WooCommerce gateway calls emit `commerce_gateway_request` with request ID, outcome, status, and duration. Gateway secrets, buyer payloads, payment payloads, and response bodies are not logged.
 
+Traced API entry points return `X-Request-Id` and propagate the same bounded identifier to WordPress and Meilisearch. The custom plugin emits `commerce_authority_response` with request ID and status. There is no asynchronous commerce worker in this local phase; payment events execute synchronously after durable claim.
+
+The protected `GET /api/operations/metrics` endpoint reports checkout and callback counts, pending age, maximum processing time, conflict counts, projection lag, active Redis carts, and bounded counters. These reference metrics have no retention, alerting, or production SLO claim.
+
 ## Operator commands
 
 ```sh
@@ -41,6 +45,7 @@ npm run projection:rebuild
 npm run verify:checkout
 npm run authority:backup
 npm run verify:recovery
+npm run benchmark:local
 curl -fsS http://localhost:3000/api/readiness | jq
 docker compose restart storefront
 docker compose down
@@ -101,3 +106,18 @@ npm run verify:upgrade
 ```
 
 The exercise installs the candidates into the local synthetic authority, runs the stack contract, restores the committed baseline versions, and runs the contract again. It is compatibility evidence for the tested pair, not a claim that arbitrary WordPress plugins or future versions are safe.
+
+## Local benchmark
+
+`npm run benchmark:local` performs three warmups and 25 sequential samples by default. It records nearest-rank p50 and p95 loopback latency for the storefront catalog, WordPress GraphQL catalog, and readiness endpoint:
+
+```sh
+BENCHMARK_SAMPLES=50 npm run benchmark:local
+```
+
+The JSON artifact records the revision, timestamp, methodology, and endpoint distributions. Results vary with local container state and host contention and must not be treated as load, concurrency, cloud, or production-capacity evidence.
+
+## Runbooks
+
+- `docs/runbooks/projection-drift.md`
+- `docs/runbooks/payment-callbacks.md`

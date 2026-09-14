@@ -15,6 +15,7 @@ Phases 1 through 3 include:
 - durable idempotent checkout commands that create pending WooCommerce orders and reserve stock;
 - a deterministic signed payment simulator plus an optional Stripe test-mode adapter;
 - replay-safe payment callbacks, WooCommerce-native stock reduction and release, and an order support timeline;
+- correlated storefront, gateway, authority, and projection logs plus protected operational metrics;
 - customer and operator WooCommerce email captured by local Mailpit; and
 - static checks plus running-stack contracts covering projections, carts, checkout retries, payment outcomes, email, and final-unit contention.
 
@@ -94,11 +95,14 @@ npm run build
 npm run verify:checkout
 npm run verify:stack
 npm run verify:recovery
+npm run benchmark:local
 ```
 
 `verify:stack` expects the Compose services to be running. It rebuilds and validates the catalog projection, readiness state, authoritative GraphQL contract, Redis cart, authoritative checkout repricing, idempotent retries, successful and failed payment effects, Mailpit delivery, and concurrent attempts to reserve the final unit.
 
 `verify:recovery` additionally exercises a local MySQL authority backup, deliberate synthetic catalog mutation, restore, and search projection rebuild. The operator runbook also defines a candidate plugin compatibility and rollback exercise.
+
+`benchmark:local` records sequential loopback latency for the server-rendered catalog, authoritative GraphQL catalog, and readiness endpoint. Results describe only the measured local Docker Compose run; they are not production capacity or SLO evidence.
 
 ## Checkout flow
 

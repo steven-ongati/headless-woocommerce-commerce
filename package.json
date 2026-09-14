@@ -8,6 +8,7 @@
   "scripts": {
     "authority:backup": "sh scripts/backup-authority.sh",
     "authority:restore": "sh scripts/restore-authority.sh",
+    "benchmark:local": "sh scripts/benchmark-local.sh",
     "build": "npm run build --workspace @commerce/storefront",
     "dev": "npm run dev --workspace @commerce/storefront",
     "lint": "npm run lint --workspace @commerce/storefront",
